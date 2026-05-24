@@ -1,0 +1,396 @@
+@prefix oc: <http://example.org/ontochain#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+oc:OntoChainOntology a owl:Ontology ;
+    rdfs:label "OntoChain blockchain fraud and smart contract risk ontology" ;
+    rdfs:comment "A compact OWL/RDFS ontology for modelling blockchain wallets, transactions, smart contracts, tokens, risk indicators, and fraud patterns." .
+
+oc:amount a owl:DatatypeProperty ;
+    rdfs:label "amount" ;
+    rdfs:domain oc:Transaction ;
+    rdfs:range xsd:decimal .
+
+oc:classifiedAs a owl:ObjectProperty ;
+    rdfs:label "classified as" ;
+    rdfs:comment "Links an entity to a fraud pattern assigned by rule-based inference." ;
+    rdfs:range oc:FraudPattern .
+
+oc:hasRiskIndicator a owl:ObjectProperty ;
+    rdfs:label "has risk indicator" ;
+    rdfs:comment "Links a wallet, transaction, or contract to evidence produced by reasoning." ;
+    rdfs:range oc:RiskIndicator .
+
+oc:interactsWithContract a owl:ObjectProperty ;
+    rdfs:label "interacts with contract" ;
+    rdfs:comment "Links a transaction to the smart contract it invokes or routes through." ;
+    rdfs:domain oc:Transaction ;
+    rdfs:range oc:SmartContract .
+
+oc:involvesWallet a owl:ObjectProperty ;
+    rdfs:label "involves wallet" ;
+    rdfs:comment "Links a transaction to each wallet involved in it." ;
+    rdfs:domain oc:Transaction ;
+    rdfs:range oc:Wallet .
+
+oc:receivedFrom a owl:ObjectProperty ;
+    rdfs:label "received from" ;
+    rdfs:comment "Links a receiver wallet to the sender wallet in a transaction." ;
+    rdfs:domain oc:Wallet ;
+    rdfs:range oc:Wallet .
+
+oc:riskExplanation a owl:DatatypeProperty ;
+    rdfs:label "risk explanation" ;
+    rdfs:comment "A human-readable explanation of which inference rule caused a risk classification." ;
+    rdfs:range xsd:string .
+
+oc:riskScore a owl:DatatypeProperty ;
+    rdfs:label "risk score" ;
+    rdfs:range xsd:integer .
+
+oc:sentTo a owl:ObjectProperty ;
+    rdfs:label "sent to" ;
+    rdfs:comment "Links a sender wallet to the receiver wallet in a transaction." ;
+    rdfs:domain oc:Wallet ;
+    rdfs:range oc:Wallet .
+
+oc:timestamp a owl:DatatypeProperty ;
+    rdfs:label "timestamp" ;
+    rdfs:domain oc:Transaction ;
+    rdfs:range xsd:dateTime .
+
+oc:transactionCount a owl:DatatypeProperty ;
+    rdfs:label "transaction count" ;
+    rdfs:domain oc:Wallet ;
+    rdfs:range xsd:integer .
+
+oc:transactionHash a owl:DatatypeProperty ;
+    rdfs:label "transaction hash" ;
+    rdfs:domain oc:Transaction ;
+    rdfs:range xsd:string .
+
+oc:transactionType a owl:DatatypeProperty ;
+    rdfs:label "transaction type" ;
+    rdfs:domain oc:Transaction ;
+    rdfs:range xsd:string .
+
+oc:tx_0xTX001 a oc:Transaction ;
+    rdfs:label "0xTX001" ;
+    oc:amount 2.5 ;
+    oc:interactsWithContract oc:contract_0xSwapRouter ;
+    oc:involvesWallet oc:wallet_0xAlice,
+        oc:wallet_0xMixerOne ;
+    oc:timestamp "2026-05-01T09:00:00"^^xsd:dateTime ;
+    oc:transactionHash "0xTX001"^^xsd:string ;
+    oc:transactionType "mixer_transfer"^^xsd:string ;
+    oc:usesToken oc:token_ETH .
+
+oc:tx_0xTX002 a oc:SuspiciousTransaction,
+        oc:Transaction ;
+    rdfs:label "0xTX002" ;
+    oc:amount 15000.0 ;
+    oc:classifiedAs oc:LargeTransferPattern ;
+    oc:hasRiskIndicator oc:HighValueTransferIndicator ;
+    oc:interactsWithContract oc:contract_0xRiskyContract ;
+    oc:involvesWallet oc:wallet_0xCarol,
+        oc:wallet_0xVendorA ;
+    oc:riskExplanation "Transaction classified as SuspiciousTransaction because amount is greater than 10000."^^xsd:string ;
+    oc:riskScore 80 ;
+    oc:timestamp "2026-05-01T10:30:00"^^xsd:dateTime ;
+    oc:transactionHash "0xTX002"^^xsd:string ;
+    oc:transactionType "contract_call"^^xsd:string ;
+    oc:usesToken oc:token_USDT .
+
+oc:tx_0xTX003 a oc:SuspiciousTransaction,
+        oc:Transaction ;
+    rdfs:label "0xTX003" ;
+    oc:amount 18000.0 ;
+    oc:classifiedAs oc:LargeTransferPattern ;
+    oc:hasRiskIndicator oc:HighValueTransferIndicator ;
+    oc:interactsWithContract oc:contract_0xRiskyContract ;
+    oc:involvesWallet oc:wallet_0xDave,
+        oc:wallet_0xVendorB ;
+    oc:riskExplanation "Transaction classified as SuspiciousTransaction because amount is greater than 10000."^^xsd:string ;
+    oc:riskScore 80 ;
+    oc:timestamp "2026-05-01T11:00:00"^^xsd:dateTime ;
+    oc:transactionHash "0xTX003"^^xsd:string ;
+    oc:transactionType "contract_call"^^xsd:string ;
+    oc:usesToken oc:token_USDT .
+
+oc:tx_0xTX004 a oc:SuspiciousTransaction,
+        oc:Transaction ;
+    rdfs:label "0xTX004" ;
+    oc:amount 22000.0 ;
+    oc:classifiedAs oc:LargeTransferPattern ;
+    oc:hasRiskIndicator oc:HighValueTransferIndicator ;
+    oc:interactsWithContract oc:contract_0xRiskyContract ;
+    oc:involvesWallet oc:wallet_0xEve,
+        oc:wallet_0xVendorC ;
+    oc:riskExplanation "Transaction classified as SuspiciousTransaction because amount is greater than 10000."^^xsd:string ;
+    oc:riskScore 80 ;
+    oc:timestamp "2026-05-01T12:00:00"^^xsd:dateTime ;
+    oc:transactionHash "0xTX004"^^xsd:string ;
+    oc:transactionType "contract_call"^^xsd:string ;
+    oc:usesToken oc:token_USDT .
+
+oc:tx_0xTX005 a oc:Transaction ;
+    rdfs:label "0xTX005" ;
+    oc:amount 1.2 ;
+    oc:interactsWithContract oc:contract_0xBridgeA ;
+    oc:involvesWallet oc:wallet_0xBob,
+        oc:wallet_0xMixerOne ;
+    oc:timestamp "2026-05-02T09:15:00"^^xsd:dateTime ;
+    oc:transactionHash "0xTX005"^^xsd:string ;
+    oc:transactionType "mixer_transfer"^^xsd:string ;
+    oc:usesToken oc:token_ETH .
+
+oc:tx_0xTX006 a oc:Transaction ;
+    rdfs:label "0xTX006" ;
+    oc:amount 0.8 ;
+    oc:interactsWithContract oc:contract_0xBridgeA ;
+    oc:involvesWallet oc:wallet_0xBob,
+        oc:wallet_0xMixerTwo ;
+    oc:timestamp "2026-05-02T10:15:00"^^xsd:dateTime ;
+    oc:transactionHash "0xTX006"^^xsd:string ;
+    oc:transactionType "mixer_transfer"^^xsd:string ;
+    oc:usesToken oc:token_ETH .
+
+oc:tx_0xTX007 a oc:Transaction ;
+    rdfs:label "0xTX007" ;
+    oc:amount 0.4 ;
+    oc:interactsWithContract oc:contract_0xBridgeA ;
+    oc:involvesWallet oc:wallet_0xBob,
+        oc:wallet_0xMixerThree ;
+    oc:timestamp "2026-05-02T11:15:00"^^xsd:dateTime ;
+    oc:transactionHash "0xTX007"^^xsd:string ;
+    oc:transactionType "mixer_transfer"^^xsd:string ;
+    oc:usesToken oc:token_ETH .
+
+oc:tx_0xTX008 a oc:Transaction ;
+    rdfs:label "0xTX008" ;
+    oc:amount 4000.0 ;
+    oc:interactsWithContract oc:contract_0xExchangeGateway ;
+    oc:involvesWallet oc:wallet_0xCoinHub,
+        oc:wallet_0xFrank ;
+    oc:timestamp "2026-05-03T13:45:00"^^xsd:dateTime ;
+    oc:transactionHash "0xTX008"^^xsd:string ;
+    oc:transactionType "exchange_deposit"^^xsd:string ;
+    oc:usesToken oc:token_USDC .
+
+oc:tx_0xTX009 a oc:Transaction ;
+    rdfs:label "0xTX009" ;
+    oc:amount 0.3 ;
+    oc:interactsWithContract oc:contract_0xSwapRouter ;
+    oc:involvesWallet oc:wallet_0xAlice,
+        oc:wallet_0xMixerOne ;
+    oc:timestamp "2026-05-04T08:20:00"^^xsd:dateTime ;
+    oc:transactionHash "0xTX009"^^xsd:string ;
+    oc:transactionType "mixer_withdrawal"^^xsd:string ;
+    oc:usesToken oc:token_ETH .
+
+oc:usesToken a owl:ObjectProperty ;
+    rdfs:label "uses token" ;
+    rdfs:comment "Links a transaction to the token transferred." ;
+    rdfs:domain oc:Transaction ;
+    rdfs:range oc:Token .
+
+oc:walletAddress a owl:DatatypeProperty ;
+    rdfs:label "wallet address" ;
+    rdfs:domain oc:Wallet ;
+    rdfs:range xsd:string .
+
+oc:ContractConcentrationPattern a oc:FraudPattern ;
+    rdfs:label "Contract concentration pattern" .
+
+oc:ExchangeWallet a owl:Class ;
+    rdfs:label "Exchange Wallet" ;
+    rdfs:comment "A wallet identified as belonging to an exchange or exchange gateway." ;
+    rdfs:subClassOf oc:Wallet .
+
+oc:MultipleRiskyRecipientsIndicator a oc:RiskIndicator ;
+    rdfs:label "Multiple risky recipients" .
+
+oc:RiskFanOutPattern a oc:FraudPattern ;
+    rdfs:label "Risk fan-out pattern" .
+
+oc:SuspiciousContract a owl:Class ;
+    rdfs:label "Suspicious Contract" ;
+    rdfs:comment "A smart contract inferred to receive repeated high-value suspicious activity." ;
+    rdfs:subClassOf oc:SmartContract .
+
+oc:SuspiciousContractIndicator a oc:RiskIndicator ;
+    rdfs:label "Repeated high-value contract activity" .
+
+oc:contract_0xExchangeGateway a oc:SmartContract ;
+    rdfs:label "0xExchangeGateway" .
+
+oc:token_USDC a oc:Token ;
+    rdfs:label "USDC" .
+
+oc:HighRiskWallet a owl:Class ;
+    rdfs:label "High Risk Wallet" ;
+    rdfs:comment "A wallet inferred to present elevated fraud or laundering risk." ;
+    rdfs:subClassOf oc:Wallet .
+
+oc:MixerExposurePattern a oc:FraudPattern ;
+    rdfs:label "Mixer exposure pattern" .
+
+oc:MixerInteractionIndicator a oc:RiskIndicator ;
+    rdfs:label "Mixer interaction" .
+
+oc:contract_0xSwapRouter a oc:SmartContract ;
+    rdfs:label "0xSwapRouter" .
+
+oc:wallet_0xCarol a oc:Wallet ;
+    rdfs:label "0xCarol" ;
+    oc:sentTo oc:wallet_0xVendorA ;
+    oc:transactionCount 1 ;
+    oc:walletAddress "0xCarol"^^xsd:string .
+
+oc:wallet_0xCoinHub a oc:ExchangeWallet,
+        oc:Wallet ;
+    rdfs:label "0xCoinHub" ;
+    oc:receivedFrom oc:wallet_0xFrank ;
+    oc:walletAddress "0xCoinHub"^^xsd:string .
+
+oc:wallet_0xDave a oc:Wallet ;
+    rdfs:label "0xDave" ;
+    oc:sentTo oc:wallet_0xVendorB ;
+    oc:transactionCount 1 ;
+    oc:walletAddress "0xDave"^^xsd:string .
+
+oc:wallet_0xEve a oc:Wallet ;
+    rdfs:label "0xEve" ;
+    oc:sentTo oc:wallet_0xVendorC ;
+    oc:transactionCount 1 ;
+    oc:walletAddress "0xEve"^^xsd:string .
+
+oc:wallet_0xFrank a oc:Wallet ;
+    rdfs:label "0xFrank" ;
+    oc:sentTo oc:wallet_0xCoinHub ;
+    oc:transactionCount 1 ;
+    oc:walletAddress "0xFrank"^^xsd:string .
+
+oc:wallet_0xMixerThree a oc:MixerWallet,
+        oc:Wallet ;
+    rdfs:label "0xMixerThree" ;
+    oc:receivedFrom oc:wallet_0xBob ;
+    oc:walletAddress "0xMixerThree"^^xsd:string .
+
+oc:wallet_0xMixerTwo a oc:MixerWallet,
+        oc:Wallet ;
+    rdfs:label "0xMixerTwo" ;
+    oc:receivedFrom oc:wallet_0xBob ;
+    oc:walletAddress "0xMixerTwo"^^xsd:string .
+
+oc:wallet_0xVendorA a oc:Wallet ;
+    rdfs:label "0xVendorA" ;
+    oc:receivedFrom oc:wallet_0xCarol ;
+    oc:walletAddress "0xVendorA"^^xsd:string .
+
+oc:wallet_0xVendorB a oc:Wallet ;
+    rdfs:label "0xVendorB" ;
+    oc:receivedFrom oc:wallet_0xDave ;
+    oc:walletAddress "0xVendorB"^^xsd:string .
+
+oc:wallet_0xVendorC a oc:Wallet ;
+    rdfs:label "0xVendorC" ;
+    oc:receivedFrom oc:wallet_0xEve ;
+    oc:walletAddress "0xVendorC"^^xsd:string .
+
+oc:HighValueTransferIndicator a oc:RiskIndicator ;
+    rdfs:label "High-value transfer" .
+
+oc:LargeTransferPattern a oc:FraudPattern ;
+    rdfs:label "Large transfer pattern" .
+
+oc:MixerWallet a owl:Class ;
+    rdfs:label "Mixer Wallet" ;
+    rdfs:comment "A wallet associated with coin mixing or tumbling activity." ;
+    rdfs:subClassOf oc:Wallet .
+
+oc:SuspiciousTransaction a owl:Class ;
+    rdfs:label "Suspicious Transaction" ;
+    rdfs:comment "A transaction inferred to be suspicious based on rule-based risk evidence." ;
+    rdfs:subClassOf oc:Transaction .
+
+oc:contract_0xBridgeA a oc:SmartContract ;
+    rdfs:label "0xBridgeA" .
+
+oc:contract_0xRiskyContract a oc:SmartContract,
+        oc:SuspiciousContract ;
+    rdfs:label "0xRiskyContract" ;
+    oc:classifiedAs oc:ContractConcentrationPattern ;
+    oc:hasRiskIndicator oc:SuspiciousContractIndicator ;
+    oc:riskExplanation "SmartContract classified as SuspiciousContract because it received repeated high-value transactions."^^xsd:string ;
+    oc:riskScore 85 .
+
+oc:token_USDT a oc:Token ;
+    rdfs:label "USDT" .
+
+oc:Token a owl:Class ;
+    rdfs:label "Token" ;
+    rdfs:comment "A cryptocurrency token or asset used in a transaction." .
+
+oc:wallet_0xAlice a oc:HighRiskWallet,
+        oc:Wallet ;
+    rdfs:label "0xAlice" ;
+    oc:classifiedAs oc:MixerExposurePattern ;
+    oc:hasRiskIndicator oc:MixerInteractionIndicator ;
+    oc:receivedFrom oc:wallet_0xMixerOne ;
+    oc:riskExplanation "Wallet classified as HighRiskWallet because it interacted with a MixerWallet."^^xsd:string ;
+    oc:riskScore 90 ;
+    oc:sentTo oc:wallet_0xMixerOne ;
+    oc:transactionCount 1 ;
+    oc:walletAddress "0xAlice"^^xsd:string .
+
+oc:FraudPattern a owl:Class ;
+    rdfs:label "Fraud Pattern" ;
+    rdfs:comment "A reusable fraud or risk pattern assigned to an inferred entity." .
+
+oc:RiskIndicator a owl:Class ;
+    rdfs:label "Risk Indicator" ;
+    rdfs:comment "Evidence used by the reasoning service to explain a risk classification." .
+
+oc:token_ETH a oc:Token ;
+    rdfs:label "ETH" .
+
+oc:SmartContract a owl:Class ;
+    rdfs:label "Smart Contract" ;
+    rdfs:comment "A blockchain smart contract address that transactions may interact with." .
+
+oc:wallet_0xBob a oc:HighRiskWallet,
+        oc:Wallet ;
+    rdfs:label "0xBob" ;
+    oc:classifiedAs oc:MixerExposurePattern,
+        oc:RiskFanOutPattern ;
+    oc:hasRiskIndicator oc:MixerInteractionIndicator,
+        oc:MultipleRiskyRecipientsIndicator ;
+    oc:riskExplanation "Wallet classified as HighRiskWallet because it interacted with a MixerWallet."^^xsd:string,
+        "Wallet classified as HighRiskWallet because it sent transactions to three or more risky wallets."^^xsd:string ;
+    oc:riskScore 90,
+        95 ;
+    oc:sentTo oc:wallet_0xMixerOne,
+        oc:wallet_0xMixerThree,
+        oc:wallet_0xMixerTwo ;
+    oc:transactionCount 3 ;
+    oc:walletAddress "0xBob"^^xsd:string .
+
+oc:wallet_0xMixerOne a oc:MixerWallet,
+        oc:Wallet ;
+    rdfs:label "0xMixerOne" ;
+    oc:receivedFrom oc:wallet_0xAlice,
+        oc:wallet_0xBob ;
+    oc:sentTo oc:wallet_0xAlice ;
+    oc:transactionCount 1 ;
+    oc:walletAddress "0xMixerOne"^^xsd:string .
+
+oc:Transaction a owl:Class ;
+    rdfs:label "Transaction" ;
+    rdfs:comment "A transfer or contract interaction recorded from blockchain transaction data." .
+
+oc:Wallet a owl:Class ;
+    rdfs:label "Wallet" ;
+    rdfs:comment "A blockchain account or address that can send and receive transactions." .
+

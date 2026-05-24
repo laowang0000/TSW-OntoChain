@@ -1,0 +1,11 @@
+tx_hash,sender,receiver,token,amount,timestamp,contract_address,transaction_type
+0xTX001,0xAlice,0xMixerOne,ETH,2.5,2026-05-01T09:00:00,0xSwapRouter,mixer_transfer
+0xTX002,0xCarol,0xVendorA,USDT,15000,2026-05-01T10:30:00,0xRiskyContract,contract_call
+0xTX003,0xDave,0xVendorB,USDT,18000,2026-05-01T11:00:00,0xRiskyContract,contract_call
+0xTX004,0xEve,0xVendorC,USDT,22000,2026-05-01T12:00:00,0xRiskyContract,contract_call
+0xTX005,0xBob,0xMixerOne,ETH,1.2,2026-05-02T09:15:00,0xBridgeA,mixer_transfer
+0xTX006,0xBob,0xMixerTwo,ETH,0.8,2026-05-02T10:15:00,0xBridgeA,mixer_transfer
+0xTX007,0xBob,0xMixerThree,ETH,0.4,2026-05-02T11:15:00,0xBridgeA,mixer_transfer
+0xTX008,0xFrank,0xCoinHub,USDC,4000,2026-05-03T13:45:00,0xExchangeGateway,exchange_deposit
+0xTX009,0xMixerOne,0xAlice,ETH,0.3,2026-05-04T08:20:00,0xSwapRouter,mixer_withdrawal
+

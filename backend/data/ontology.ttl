@@ -1,0 +1,161 @@
+@prefix oc: <http://example.org/ontochain#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+oc:OntoChainOntology a owl:Ontology ;
+    rdfs:label "OntoChain blockchain fraud and smart contract risk ontology" ;
+    rdfs:comment "A compact OWL/RDFS ontology for modelling blockchain wallets, transactions, smart contracts, tokens, risk indicators, and fraud patterns." .
+
+oc:Wallet a owl:Class ;
+    rdfs:label "Wallet" ;
+    rdfs:comment "A blockchain account or address that can send and receive transactions." .
+
+oc:Transaction a owl:Class ;
+    rdfs:label "Transaction" ;
+    rdfs:comment "A transfer or contract interaction recorded from blockchain transaction data." .
+
+oc:Token a owl:Class ;
+    rdfs:label "Token" ;
+    rdfs:comment "A cryptocurrency token or asset used in a transaction." .
+
+oc:SmartContract a owl:Class ;
+    rdfs:label "Smart Contract" ;
+    rdfs:comment "A blockchain smart contract address that transactions may interact with." .
+
+oc:ExchangeWallet a owl:Class ;
+    rdfs:subClassOf oc:Wallet ;
+    rdfs:label "Exchange Wallet" ;
+    rdfs:comment "A wallet identified as belonging to an exchange or exchange gateway." .
+
+oc:MixerWallet a owl:Class ;
+    rdfs:subClassOf oc:Wallet ;
+    rdfs:label "Mixer Wallet" ;
+    rdfs:comment "A wallet associated with coin mixing or tumbling activity." .
+
+oc:HighRiskWallet a owl:Class ;
+    rdfs:subClassOf oc:Wallet ;
+    rdfs:label "High Risk Wallet" ;
+    rdfs:comment "A wallet inferred to present elevated fraud or laundering risk." .
+
+oc:SuspiciousTransaction a owl:Class ;
+    rdfs:subClassOf oc:Transaction ;
+    rdfs:label "Suspicious Transaction" ;
+    rdfs:comment "A transaction inferred to be suspicious based on rule-based risk evidence." .
+
+oc:SuspiciousContract a owl:Class ;
+    rdfs:subClassOf oc:SmartContract ;
+    rdfs:label "Suspicious Contract" ;
+    rdfs:comment "A smart contract inferred to receive repeated high-value suspicious activity." .
+
+oc:RiskIndicator a owl:Class ;
+    rdfs:label "Risk Indicator" ;
+    rdfs:comment "Evidence used by the reasoning service to explain a risk classification." .
+
+oc:FraudPattern a owl:Class ;
+    rdfs:label "Fraud Pattern" ;
+    rdfs:comment "A reusable fraud or risk pattern assigned to an inferred entity." .
+
+oc:sentTo a owl:ObjectProperty ;
+    rdfs:domain oc:Wallet ;
+    rdfs:range oc:Wallet ;
+    rdfs:label "sent to" ;
+    rdfs:comment "Links a sender wallet to the receiver wallet in a transaction." .
+
+oc:receivedFrom a owl:ObjectProperty ;
+    rdfs:domain oc:Wallet ;
+    rdfs:range oc:Wallet ;
+    rdfs:label "received from" ;
+    rdfs:comment "Links a receiver wallet to the sender wallet in a transaction." .
+
+oc:involvesWallet a owl:ObjectProperty ;
+    rdfs:domain oc:Transaction ;
+    rdfs:range oc:Wallet ;
+    rdfs:label "involves wallet" ;
+    rdfs:comment "Links a transaction to each wallet involved in it." .
+
+oc:interactsWithContract a owl:ObjectProperty ;
+    rdfs:domain oc:Transaction ;
+    rdfs:range oc:SmartContract ;
+    rdfs:label "interacts with contract" ;
+    rdfs:comment "Links a transaction to the smart contract it invokes or routes through." .
+
+oc:usesToken a owl:ObjectProperty ;
+    rdfs:domain oc:Transaction ;
+    rdfs:range oc:Token ;
+    rdfs:label "uses token" ;
+    rdfs:comment "Links a transaction to the token transferred." .
+
+oc:hasRiskIndicator a owl:ObjectProperty ;
+    rdfs:range oc:RiskIndicator ;
+    rdfs:label "has risk indicator" ;
+    rdfs:comment "Links a wallet, transaction, or contract to evidence produced by reasoning." .
+
+oc:classifiedAs a owl:ObjectProperty ;
+    rdfs:range oc:FraudPattern ;
+    rdfs:label "classified as" ;
+    rdfs:comment "Links an entity to a fraud pattern assigned by rule-based inference." .
+
+oc:walletAddress a owl:DatatypeProperty ;
+    rdfs:domain oc:Wallet ;
+    rdfs:range xsd:string ;
+    rdfs:label "wallet address" .
+
+oc:transactionHash a owl:DatatypeProperty ;
+    rdfs:domain oc:Transaction ;
+    rdfs:range xsd:string ;
+    rdfs:label "transaction hash" .
+
+oc:amount a owl:DatatypeProperty ;
+    rdfs:domain oc:Transaction ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "amount" .
+
+oc:timestamp a owl:DatatypeProperty ;
+    rdfs:domain oc:Transaction ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "timestamp" .
+
+oc:riskScore a owl:DatatypeProperty ;
+    rdfs:range xsd:integer ;
+    rdfs:label "risk score" .
+
+oc:riskExplanation a owl:DatatypeProperty ;
+    rdfs:range xsd:string ;
+    rdfs:label "risk explanation" ;
+    rdfs:comment "A human-readable explanation of which inference rule caused a risk classification." .
+
+oc:transactionCount a owl:DatatypeProperty ;
+    rdfs:domain oc:Wallet ;
+    rdfs:range xsd:integer ;
+    rdfs:label "transaction count" .
+
+oc:transactionType a owl:DatatypeProperty ;
+    rdfs:domain oc:Transaction ;
+    rdfs:range xsd:string ;
+    rdfs:label "transaction type" .
+
+oc:MixerInteractionIndicator a oc:RiskIndicator ;
+    rdfs:label "Mixer interaction" .
+
+oc:HighValueTransferIndicator a oc:RiskIndicator ;
+    rdfs:label "High-value transfer" .
+
+oc:MultipleRiskyRecipientsIndicator a oc:RiskIndicator ;
+    rdfs:label "Multiple risky recipients" .
+
+oc:SuspiciousContractIndicator a oc:RiskIndicator ;
+    rdfs:label "Repeated high-value contract activity" .
+
+oc:MixerExposurePattern a oc:FraudPattern ;
+    rdfs:label "Mixer exposure pattern" .
+
+oc:LargeTransferPattern a oc:FraudPattern ;
+    rdfs:label "Large transfer pattern" .
+
+oc:RiskFanOutPattern a oc:FraudPattern ;
+    rdfs:label "Risk fan-out pattern" .
+
+oc:ContractConcentrationPattern a oc:FraudPattern ;
+    rdfs:label "Contract concentration pattern" .
