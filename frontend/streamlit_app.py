@@ -132,6 +132,18 @@ def api_post(api_url: str, endpoint: str, **kwargs: Any) -> dict[str, Any] | Non
         return None
 
 
+def api_get_text(api_url: str, endpoint: str) -> str | None:
+    """Call a text export endpoint and return the response body."""
+
+    try:
+        response = requests.get(f"{api_url}{endpoint}", timeout=15)
+        response.raise_for_status()
+        return response.text
+    except requests.RequestException as exc:
+        show_backend_error(exc)
+        return None
+
+
 def check_backend(api_url: str) -> bool:
     """Return True when FastAPI is reachable without flooding the UI."""
 
@@ -181,6 +193,42 @@ def query_result_dataframe(rows: list[dict[str, Any]]) -> pd.DataFrame:
     for column in frame.columns:
         frame[column] = frame[column].apply(list_to_text)
     return frame
+
+
+def validation_issue_dataframe(rows: list[dict[str, Any]]) -> pd.DataFrame:
+    """Format validation errors or warnings for display."""
+
+    if not rows:
+        return pd.DataFrame(columns=["row", "field", "message"])
+    return pd.DataFrame(rows)[["row", "field", "message"]]
+
+
+def inferred_fact_dataframe(rows: list[dict[str, Any]]) -> pd.DataFrame:
+    """Format inferred RDF facts for the dedicated inference evidence tab."""
+
+    if not rows:
+        return pd.DataFrame(columns=["entityLabel", "predicate", "object", "triple"])
+    return pd.DataFrame(rows)[["entityLabel", "predicate", "object", "triple"]]
+
+
+def risk_entity_options(summary: dict[str, Any]) -> dict[str, str]:
+    """Return display labels mapped to RDF resource identifiers for evidence lookup."""
+
+    options: dict[str, str] = {}
+    for category, key in (
+        ("Wallet", "high_risk_wallets"),
+        ("Transaction", "suspicious_transactions"),
+        ("Contract", "suspicious_contracts"),
+    ):
+        for row in summary.get(key, []):
+            options[f"{category}: {row.get('label')}"] = row.get("id", "")
+    return options
+
+
+def csv_bytes_from_frame(frame: pd.DataFrame) -> bytes:
+    """Convert a dataframe to CSV bytes for Streamlit downloads."""
+
+    return frame.to_csv(index=False).encode("utf-8")
 
 
 def load_visible_csv(uploaded_file: Any) -> tuple[pd.DataFrame, str]:
@@ -252,9 +300,21 @@ api_url = st.sidebar.text_input("FastAPI URL", DEFAULT_API_URL).rstrip("/")
 uploaded_file = st.sidebar.file_uploader("Upload transaction CSV", type=["csv"])
 
 st.sidebar.markdown("Demo order")
-st.sidebar.markdown("1. CSV data\n2. RDF triples\n3. Inference\n4. SPARQL\n5. Graph\n6. Explanation")
+st.sidebar.markdown("1. CSV data\n2. Validation\n3. RDF triples\n4. Inference\n5. Evidence\n6. SPARQL\n7. Graph\n8. Explanation")
 st.sidebar.markdown("Required CSV fields")
 st.sidebar.code("tx_hash, sender, receiver, token, amount, timestamp, contract_address, transaction_type")
+
+if st.sidebar.button("Validate CSV"):
+    files = None
+    if uploaded_file is not None:
+        files = {"file": (uploaded_file.name, uploaded_file.getvalue(), "text/csv")}
+    validation_result = api_post(api_url, "/validate-csv", files=files)
+    if validation_result:
+        st.session_state["validation_result"] = validation_result
+        if validation_result.get("valid"):
+            st.sidebar.success("CSV validation passed")
+        else:
+            st.sidebar.error("CSV validation failed")
 
 if st.sidebar.button("Build RDF knowledge graph", type="primary"):
     files = None
@@ -263,6 +323,7 @@ if st.sidebar.button("Build RDF knowledge graph", type="primary"):
     result = api_post(api_url, "/build-graph", files=files)
     if result:
         st.session_state["build_result"] = result
+        st.session_state["validation_result"] = result.get("validation")
         st.success("Knowledge graph built. RDF triples were generated and reasoning rules were applied.")
 
 backend_online = check_backend(api_url)
@@ -275,14 +336,16 @@ else:
         "`uvicorn backend.main:app --reload`, then return to this page."
     )
 
-tab_csv, tab_rdf, tab_inference, tab_sparql, tab_graph, tab_explain = st.tabs(
+tab_csv, tab_validation, tab_rdf, tab_inference, tab_evidence, tab_sparql, tab_graph, tab_explain = st.tabs(
     [
         "1. Raw CSV",
-        "2. RDF triples",
-        "3. Inferred risks",
-        "4. SPARQL",
-        "5. Knowledge graph",
-        "6. Semantic Web use",
+        "2. Validation",
+        "3. RDF triples",
+        "4. Inferred facts",
+        "5. Risk evidence",
+        "6. SPARQL",
+        "7. Knowledge graph",
+        "8. Semantic Web use",
     ]
 )
 
@@ -300,8 +363,29 @@ with tab_csv:
     except Exception as exc:  # noqa: BLE001 - Streamlit should keep the demo alive on malformed uploads.
         st.error(f"Could not read the CSV file: {exc}")
 
+with tab_validation:
+    st.header("2. Semantic validation before RDF generation")
+    st.write(
+        "This step checks whether the tabular data can be safely transformed into ontology-aligned RDF resources. "
+        "It supports data quality before graph construction."
+    )
+    validation = st.session_state.get("validation_result")
+    if validation is None:
+        st.info("Click **Validate CSV** or **Build RDF knowledge graph** in the sidebar to generate a validation report.")
+    else:
+        if validation.get("valid"):
+            st.success(f"Validation passed. {validation.get('row_count', 0)} transaction rows checked.")
+        else:
+            st.error("Validation failed. Fix the listed errors before RDF generation.")
+        st.caption("Required ontology-mapped CSV fields")
+        st.code(", ".join(validation.get("required_fields", [])))
+        st.subheader("Errors")
+        st.dataframe(validation_issue_dataframe(validation.get("errors", [])), use_container_width=True)
+        st.subheader("Warnings")
+        st.dataframe(validation_issue_dataframe(validation.get("warnings", [])), use_container_width=True)
+
 with tab_rdf:
-    st.header("2. RDF triples generated from the CSV")
+    st.header("3. RDF triples generated from the CSV")
     st.write(
         "RDF expresses the blockchain data as subject-predicate-object triples. "
         "Examples include wallet-to-wallet transfers, transaction amounts, token usage, and contract interactions."
@@ -310,9 +394,12 @@ with tab_rdf:
     if triples:
         st.write(f"Showing up to 120 of {triples['triple_count']} triples from `generated_graph.ttl`.")
         st.code("\n".join(triples["triples"]), language="turtle")
+        turtle_export = api_get_text(api_url, "/rdf-turtle") if backend_online else None
+        if turtle_export:
+            st.download_button("Export RDF Turtle", turtle_export, "generated_graph.ttl", "text/turtle")
 
 with tab_inference:
-    st.header("3. Inferred risk labels")
+    st.header("4. Inferred risk labels and RDF facts")
     st.write(
         "The reasoning service adds new RDF facts such as `oc:HighRiskWallet`, "
         "`oc:SuspiciousTransaction`, and `oc:SuspiciousContract`. These labels are explainable because each one stores "
@@ -330,9 +417,43 @@ with tab_inference:
         st.info(
             "Presentation point: these are not manually typed labels. They are inferred and stored back into the RDF graph."
         )
+        risk_csv = api_get_text(api_url, "/risk-summary.csv") if backend_online else None
+        if risk_csv:
+            st.download_button("Export risk summary CSV", risk_csv, "risk_summary.csv", "text/csv")
+    st.subheader("Inferred RDF facts")
+    inferred_payload = api_get(api_url, "/inferred-facts") if backend_online else None
+    if inferred_payload:
+        st.write(f"Inferred facts returned: {inferred_payload.get('inferred_fact_count', 0)}")
+        st.dataframe(inferred_fact_dataframe(inferred_payload.get("facts", [])), use_container_width=True)
+
+with tab_evidence:
+    st.header("5. Evidence-based risk explanation")
+    st.write(
+        "Select an inferred risk entity to inspect the matched rule, original source triples, inferred triples, "
+        "and a SPARQL evidence query. This makes the classification defendable during Q&A."
+    )
+    summary = api_get(api_url, "/risk-summary") if backend_online else None
+    if summary:
+        options = risk_entity_options(summary)
+        if options:
+            selected_label = st.selectbox("Risk entity", list(options))
+            evidence = api_get(api_url, "/risk-evidence", entity_id=options[selected_label])
+            if evidence:
+                st.subheader(f"{evidence.get('label')} ({evidence.get('type')})")
+                st.metric("Risk score", evidence.get("riskScore"))
+                st.write("Rule explanations")
+                st.dataframe(pd.DataFrame(evidence.get("matchedRules", [])), use_container_width=True)
+                st.write("Source RDF triples")
+                st.code("\n".join(evidence.get("sourceTriples", [])) or "No source triples found.", language="turtle")
+                st.write("Inferred RDF triples")
+                st.code("\n".join(evidence.get("inferredTriples", [])) or "No inferred triples found.", language="turtle")
+                st.write("SPARQL evidence query")
+                st.code(evidence.get("sparqlEvidenceQuery", ""), language="sparql")
+        else:
+            st.info("No inferred risk entities are available yet. Build the RDF knowledge graph first.")
 
 with tab_sparql:
-    st.header("4. SPARQL query results")
+    st.header("6. SPARQL query results")
     st.write(
         "SPARQL queries retrieve both original CSV-derived facts and inferred risk classifications from the same RDF graph."
     )
@@ -342,22 +463,38 @@ with tab_sparql:
     if st.button("Run SPARQL query"):
         result = api_post(api_url, "/query-sparql", json={"query": query_text})
         if result:
+            st.session_state["sparql_result"] = result
             st.write(f"Rows returned: {result['row_count']}")
-            st.dataframe(query_result_dataframe(result["rows"]), use_container_width=True)
+            result_frame = query_result_dataframe(result["rows"])
+            st.dataframe(result_frame, use_container_width=True)
+            st.download_button("Export SPARQL result CSV", csv_bytes_from_frame(result_frame), "sparql_result.csv", "text/csv")
+    elif "sparql_result" in st.session_state:
+        previous_frame = query_result_dataframe(st.session_state["sparql_result"].get("rows", []))
+        st.caption("Last SPARQL result is available for export.")
+        st.download_button("Export last SPARQL result CSV", csv_bytes_from_frame(previous_frame), "sparql_result.csv", "text/csv")
 
 with tab_graph:
-    st.header("5. Knowledge graph visualisation")
+    st.header("7. Knowledge graph visualisation")
     st.write(
         "The graph view shows RDF resources as nodes and object properties as labelled edges. "
         "Risk nodes and inferred classifications are visualised together with original transaction facts."
     )
-    graph_payload = api_get(api_url, "/graph-data") if backend_online else None
+    graph_filter_labels = {
+        "All RDF relationships": "all",
+        "Risk entities only": "risk_entities",
+        "Wallet transfers": "wallet_transfers",
+        "Smart contract interactions": "contract_interactions",
+        "Inferred risk relationships": "inferred_relationships",
+    }
+    selected_filter_label = st.selectbox("Graph filter", list(graph_filter_labels))
+    graph_payload = api_get(api_url, "/graph-data", filter_mode=graph_filter_labels[selected_filter_label]) if backend_online else None
     if graph_payload:
         st.caption("Colours indicate resource types such as Wallet, Transaction, SmartContract, RiskIndicator, and FraudPattern.")
+        st.write(f"Nodes: {len(graph_payload.get('nodes', []))} | Edges: {len(graph_payload.get('edges', []))}")
         render_graph(graph_payload)
 
 with tab_explain:
-    st.header("6. How the system uses Semantic Web technology")
+    st.header("8. How the system uses Semantic Web technology")
     st.write("Use this section during Q&A to connect the software demo directly to the TSW6223 rubric.")
 
     st.subheader("RDF")

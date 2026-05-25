@@ -7,6 +7,7 @@ These queries can be pasted into the Streamlit SPARQL box or sent to `POST /quer
 - They show **source facts**, such as wallet transfers and contract interactions.
 - They show **inferred facts**, such as high-risk wallets and suspicious transactions.
 - They show **ontology usage**, such as which OWL classes have instances.
+- They support **evidence-based explanation**, where a selected entity's source and inferred facts can be verified.
 - They help answer marking questions about RDF, RDFS, OWL, SPARQL, and inference.
 
 ## High-Risk Wallets With Explanations
@@ -127,4 +128,37 @@ WHERE {
   ?mixer a oc:MixerWallet ;
          rdfs:label ?mixerLabel .
 }
+```
+
+## Evidence Query For One Risk Entity
+
+Semantic question: Which inferred risk facts explain a selected entity?
+
+Expected demo result: for `0xAlice`, the query returns inferred type, risk score, risk explanation, risk indicator, and fraud pattern.
+
+```sparql
+SELECT ?predicate ?object
+WHERE {
+  oc:wallet_0xAlice ?predicate ?object .
+  VALUES ?predicate { rdf:type oc:riskScore oc:riskExplanation oc:hasRiskIndicator oc:classifiedAs }
+}
+ORDER BY ?predicate ?object
+```
+
+## Source Evidence For A Wallet
+
+Semantic question: Which source graph relationships show that a wallet interacted with another wallet before inference?
+
+Expected demo result: source relationships for `0xAlice`, including interaction with `0xMixerOne`.
+
+```sparql
+SELECT ?wallet ?walletLabel ?predicate ?otherWallet ?otherLabel
+WHERE {
+  VALUES ?wallet { oc:wallet_0xAlice }
+  VALUES ?predicate { oc:sentTo oc:receivedFrom }
+  ?wallet ?predicate ?otherWallet ;
+          rdfs:label ?walletLabel .
+  ?otherWallet rdfs:label ?otherLabel .
+}
+ORDER BY ?predicate ?otherLabel
 ```

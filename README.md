@@ -17,6 +17,8 @@ OntoChain addresses this by turning transaction data into a semantic knowledge g
 - Apply rule-based inference to classify high-risk wallets, suspicious transactions, and suspicious contracts.
 - Query both original and inferred facts using SPARQL.
 - Visualise the knowledge graph for a clear university demonstration.
+- Validate uploaded CSV structure before RDF generation.
+- Provide evidence views that connect risk explanations to source and inferred RDF triples.
 
 ## Selected Semantic Web Categories
 
@@ -57,6 +59,9 @@ semantic-blockchain-risk-system/
 CSV transaction data
         |
         v
+Semantic CSV validation
+        |
+        v
 RDF builder (RDFLib)
         |
         v
@@ -80,7 +85,8 @@ Main components:
 - `backend/data/ontology.ttl` defines the OWL/RDFS vocabulary.
 - `backend/services/reasoning_service.py` applies inference rules.
 - `backend/services/sparql_service.py` executes SPARQL queries.
-- `backend/services/graph_service.py` prepares risk summaries and graph visualisation data.
+- `backend/services/validation_service.py` checks uploaded CSV structure before RDF generation.
+- `backend/services/graph_service.py` prepares risk summaries, inferred facts, evidence views, and graph visualisation data.
 - `frontend/streamlit_app.py` provides the demonstration interface.
 
 ## Setup
@@ -127,11 +133,13 @@ Use the default FastAPI URL, then click **Build RDF knowledge graph**.
 The Streamlit app is organised as a guided university presentation:
 
 1. **Raw CSV** - shows the original blockchain transaction table.
-2. **RDF triples** - shows Turtle-style triples generated from the CSV.
-3. **Inferred risks** - shows high-risk wallets, suspicious transactions, and suspicious contracts with rule explanations.
-4. **SPARQL** - runs predefined or custom SPARQL queries over the graph.
-5. **Knowledge graph** - visualises resources and object-property edges.
-6. **Semantic Web use** - gives short talking points for RDF, RDFS/OWL, inference, and SPARQL.
+2. **Validation** - checks required CSV fields, missing values, numeric amounts, timestamps, and transaction type warnings.
+3. **RDF triples** - shows Turtle-style triples generated from the CSV and exports the graph as Turtle.
+4. **Inferred facts** - shows high-risk wallets, suspicious transactions, suspicious contracts, and inferred RDF facts.
+5. **Risk evidence** - connects one selected risk entity to matched rules, source triples, inferred triples, and a SPARQL evidence query.
+6. **SPARQL** - runs predefined or custom SPARQL queries over the graph and exports query results as CSV.
+7. **Knowledge graph** - visualises resources and object-property edges with filters for risk, transfers, contracts, and inferred relationships.
+8. **Semantic Web use** - gives short talking points for RDF, RDFS/OWL, inference, and SPARQL.
 
 If the backend is not running, the UI shows a friendly message with the command needed to start FastAPI.
 
@@ -156,11 +164,16 @@ The app now shows a friendly message in the graph tab if `pyvis` is missing, but
 ## FastAPI Endpoints
 
 - `GET /` - health and endpoint guide
+- `POST /validate-csv` - validate uploaded CSV or the bundled sample before RDF generation
 - `POST /build-graph` - build RDF from uploaded CSV or sample CSV and apply reasoning
 - `GET /triples` - show generated RDF triples
+- `GET /rdf-turtle` - export the current generated graph as Turtle
+- `GET /inferred-facts` - return RDF facts added by reasoning
 - `POST /query-sparql` - run SPARQL queries
 - `GET /risk-summary` - return inferred risk counts and explanations
-- `GET /graph-data` - return nodes and edges for visualisation
+- `GET /risk-summary.csv` - export risk summary rows as CSV
+- `GET /risk-evidence?entity_id=...` - return source triples, inferred triples, matched rules, and SPARQL evidence for one risk entity
+- `GET /graph-data?filter_mode=...` - return nodes and edges for visualisation; supported filters include `all`, `risk_entities`, `wallet_transfers`, `contract_interactions`, and `inferred_relationships`
 
 ## Semantic Web Features
 
@@ -173,6 +186,10 @@ The app now shows a friendly message in the graph tab if `pyvis` is missing, but
 - Tokens become `oc:Token`
 - Contracts become `oc:SmartContract`
 - Relationships use object properties such as `oc:sentTo`, `oc:usesToken`, and `oc:interactsWithContract`
+
+### Semantic validation
+
+`validation_service.py` checks uploaded CSV files before RDF generation. It verifies required columns, empty required values, numeric amounts, ISO-style timestamp warnings, and documented transaction type warnings. This makes the CSV-to-RDF process safer and easier to defend during the demonstration.
 
 ### RDFS and OWL
 
@@ -196,6 +213,8 @@ The app now shows a friendly message in the graph tab if `pyvis` is missing, but
 
 Each inferred entity also receives an `oc:riskExplanation` literal, such as `Wallet classified as HighRiskWallet because it interacted with a MixerWallet.` This makes the classification explainable in RDF, the API, Streamlit, and SPARQL.
 
+The Streamlit **Risk evidence** tab expands this idea by showing the matched rule, source RDF triples, inferred RDF triples, and a SPARQL evidence query for one selected risk entity.
+
 ### SPARQL
 
 Users can run custom SPARQL queries through the Streamlit UI or `POST /query-sparql`. The frontend also includes predefined semantic questions for:
@@ -206,6 +225,7 @@ Users can run custom SPARQL queries through the Streamlit UI or `POST /query-spa
 - smart contract interactions
 - all inferred risk facts
 - ontology classes that have instances in the generated graph
+- evidence queries for selected risk entities
 
 Example:
 
@@ -229,10 +249,11 @@ pytest
 The tests are designed to support project marking and Q&A. They cover:
 
 - CSV-to-RDF conversion, including transaction literals and wallet relationships
+- Semantic CSV validation for valid sample data, missing columns, and invalid numeric amounts
 - Ontology loading for required OWL/RDFS classes and properties
 - Rule-based reasoning for high-value transactions, mixer interaction, repeated risky-wallet interaction, and suspicious contracts
 - SPARQL queries for high-risk wallets, suspicious transactions, and risk explanations
-- API output shapes for `GET /graph-data` and `GET /risk-summary`
+- API output shapes for `GET /graph-data`, `GET /risk-summary`, `GET /inferred-facts`, and `GET /risk-evidence`
 
 The tests use the bundled sample data or temporary CSV files, so they do not depend on absolute machine-specific paths.
 
@@ -241,23 +262,26 @@ The tests use the bundled sample data or temporary CSV files, so they do not dep
 The system is evaluated through automated tests and manual demonstration:
 
 - RDF generation is checked by verifying resources, literals, and wallet transfer relationships.
+- CSV validation is checked by verifying valid data and common invalid upload cases.
 - Ontology loading is checked by verifying OWL classes and properties.
 - Reasoning is checked by testing each inference rule separately.
 - SPARQL is checked by querying high-risk wallets, suspicious transactions, transfer relationships, inferred facts, and ontology classes.
-- API output is checked for graph-data and risk-summary response format.
-- Streamlit demonstration is checked by building the graph, showing triples, running SPARQL, and viewing the knowledge graph.
+- API output is checked for graph-data, risk-summary, inferred-facts, and risk-evidence response formats.
+- Streamlit demonstration is checked by building the graph, showing validation, triples, inferred facts, risk evidence, SPARQL, exports, and the filtered knowledge graph.
 
 ## Demo Flow
 
 1. Start FastAPI.
 2. Start Streamlit.
 3. Open **Raw CSV** and explain the source transaction fields.
-4. Click **Build RDF knowledge graph**.
-5. Open **RDF triples** and show the generated Turtle facts.
-6. Open **Inferred risks** and explain the `oc:riskExplanation` text for each rule-based classification.
-7. Open **SPARQL** and run a predefined query.
-8. Open **Knowledge graph** and show how entities are connected.
-9. Open **Semantic Web use** to connect the demo to RDF, RDFS/OWL, inference, and SPARQL.
+4. Open **Validation** or click **Validate CSV** to show data-quality checks before RDF generation.
+5. Click **Build RDF knowledge graph**.
+6. Open **RDF triples** and show the generated Turtle facts.
+7. Open **Inferred facts** and explain the `oc:riskExplanation` text and inferred RDF facts.
+8. Open **Risk evidence** and select a wallet, transaction, or contract to show source triples, inferred triples, and the SPARQL evidence query.
+9. Open **SPARQL** and run a predefined query.
+10. Open **Knowledge graph** and use graph filters to show transfers, contract interactions, or inferred risk relationships.
+11. Open **Semantic Web use** to connect the demo to RDF, RDFS/OWL, inference, and SPARQL.
 
 More detail is available in `docs/demo_script.md`, `docs/architecture.md`, and `docs/sparql_examples.md`.
 
@@ -272,9 +296,8 @@ More detail is available in `docs/demo_script.md`, `docs/architecture.md`, and `
 ## Future Improvements
 
 - Add more ontology classes for phishing wallets, bridge contracts, token approvals, and sanction indicators.
-- Support larger datasets with pagination and graph filtering.
-- Add export buttons for SPARQL results and risk summaries.
-- Add optional SHACL validation for uploaded CSV-to-RDF data quality.
+- Support larger datasets with pagination.
+- Extend semantic validation into formal SHACL shapes.
 - Add named graphs to separate source facts, ontology facts, and inferred facts.
 - Connect to real blockchain datasets only after the Semantic Web MVP is stable.
 

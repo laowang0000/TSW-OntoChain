@@ -24,24 +24,38 @@ OntoChain converts transaction rows into a semantic knowledge graph so risk clas
 ## Data Flow
 
 1. A CSV file is uploaded or the bundled sample file is used.
-2. `rdf_builder.py` validates CSV columns and creates RDF resources for wallets, transactions, tokens, and contracts.
-3. `ontology_service.py` loads `ontology.ttl` and binds namespaces for readable Turtle output.
-4. `reasoning_service.py` applies the fraud/risk rules and inserts inferred triples, including human-readable `oc:riskExplanation` literals.
-5. `generated_graph.ttl` stores the ontology, source facts, and inferred facts in Turtle.
-6. FastAPI exposes triples, SPARQL, risk summaries, and graph visualisation data.
-7. Streamlit provides a demo UI for graph building, SPARQL execution, and pyvis visualisation.
+2. `validation_service.py` checks required columns, missing values, numeric amounts, timestamp warnings, and transaction type warnings.
+3. `rdf_builder.py` creates RDF resources for wallets, transactions, tokens, and contracts.
+4. `ontology_service.py` loads `ontology.ttl` and binds namespaces for readable Turtle output.
+5. `reasoning_service.py` applies the fraud/risk rules and inserts inferred triples, including human-readable `oc:riskExplanation` literals.
+6. `generated_graph.ttl` stores the ontology, source facts, and inferred facts in Turtle.
+7. FastAPI exposes validation, triples, inferred facts, SPARQL, risk summaries, evidence views, exports, and graph visualisation data.
+8. Streamlit provides a guided demo UI for validation, graph building, SPARQL execution, evidence explanation, exports, and pyvis visualisation.
 
 ## Runtime Components
 
 | Component | File | Responsibility |
 | --- | --- | --- |
 | FastAPI app | `backend/main.py` | Exposes build, triples, SPARQL, risk summary, and graph-data endpoints. |
+| Validation service | `backend/services/validation_service.py` | Checks uploaded transaction CSV files before RDF generation. |
 | RDF builder | `backend/services/rdf_builder.py` | Converts CSV rows into RDF triples. |
 | Ontology service | `backend/services/ontology_service.py` | Loads `ontology.ttl`, binds namespaces, and saves generated Turtle. |
 | Reasoning service | `backend/services/reasoning_service.py` | Applies rule-based inference and writes explanation triples. |
 | SPARQL service | `backend/services/sparql_service.py` | Executes SPARQL queries with default prefixes. |
-| Graph service | `backend/services/graph_service.py` | Creates risk-summary and visualisation data. |
+| Graph service | `backend/services/graph_service.py` | Creates risk summaries, inferred facts, risk evidence, and filtered visualisation data. |
 | Streamlit UI | `frontend/streamlit_app.py` | Provides a guided presentation interface. |
+
+## Semantic Validation
+
+The validation layer is intentionally simple and visible. It checks whether a CSV can be mapped into the ontology-driven RDF graph before RDF generation starts. It reports:
+
+- missing required columns
+- empty required values
+- non-numeric `amount` values
+- timestamp format warnings
+- transaction type warnings
+
+This supports the rubric by showing software clarity and data-quality control before semantic graph construction.
 
 ## Core Classes
 
@@ -67,15 +81,31 @@ Risk explanations are stored in RDF rather than only being produced in the UI. T
 
 The same explanation triples appear in `GET /risk-summary`, the Streamlit risk tables, and `generated_graph.ttl`.
 
+The evidence view expands each explanation into:
+
+- matched risk rule details
+- source RDF triples that came from CSV facts
+- inferred RDF triples added by reasoning
+- a SPARQL evidence query for the selected entity
+
+This makes the inference path easier to defend during Q&A.
+
+## Export and Graph Filtering
+
+The frontend exposes lightweight export actions for generated Turtle RDF, risk summary CSV, and SPARQL result CSV. These exports are demo support features: they do not change the semantic model, but they make RDF and query results easier to inspect and include in the report.
+
+The graph-data endpoint supports filters for all relationships, risk entities, wallet transfers, smart contract interactions, and inferred risk relationships. This keeps the visualisation readable during a short presentation.
+
 ## Testing and Evaluation
 
 The test suite checks the architecture from multiple levels:
 
 - CSV-to-RDF conversion preserves transaction fields and relationships.
+- CSV validation catches missing columns and invalid numeric amounts before RDF conversion.
 - Ontology loading confirms required OWL/RDFS classes and properties exist.
 - Reasoning tests confirm each rule creates the expected inferred RDF type and risk indicator.
 - SPARQL tests confirm semantic queries can retrieve high-risk wallets, suspicious transactions, transfer relationships, contract interactions, inferred facts, and ontology classes.
-- API output tests confirm `GET /risk-summary` and `GET /graph-data` return predictable structures for the frontend.
+- API output tests confirm `GET /risk-summary`, `GET /graph-data`, `GET /inferred-facts`, and `GET /risk-evidence` return predictable structures for the frontend.
 
 ## Limitations and Future Work
 
@@ -89,7 +119,7 @@ Current limitations:
 Future improvements:
 
 - Add named graphs to distinguish ontology, source facts, and inferred facts.
-- Add SHACL validation for uploaded data.
+- Convert the current CSV validation checks into formal SHACL shapes.
 - Add more fraud patterns, such as phishing, rapid fund splitting, or suspicious token approvals.
-- Add graph filters for large datasets.
+- Add pagination and search for larger datasets.
 - Connect to real blockchain datasets after the semantic workflow is fully validated.

@@ -34,24 +34,41 @@ Manual setup:
    - Point out the required fields: `tx_hash`, `sender`, `receiver`, `token`, `amount`, `timestamp`, `contract_address`, and `transaction_type`.
    - State that the system will convert these rows into RDF resources and triples.
 
-5. Click **Build RDF knowledge graph** in the sidebar. Do not upload a file for the standard demo. This uses `backend/data/sample_transactions.csv`.
+5. Open the **Validation** tab or click **Validate CSV** in the sidebar.
 
-6. Open the **RDF triples** tab and explain the generated RDF:
+   - Explain that the system checks the required ontology-mapped CSV fields before RDF generation.
+   - Point out that invalid numeric amounts or missing required values are reported before the graph is built.
+   - State that this supports demo stability and data quality for CSV-to-RDF conversion.
+
+6. Click **Build RDF knowledge graph** in the sidebar. Do not upload a file for the standard demo. This uses `backend/data/sample_transactions.csv`.
+
+7. Open the **RDF triples** tab and explain the generated RDF:
 
    - Wallets, transactions, tokens, and contracts are RDF resources.
    - Relationships such as `oc:sentTo`, `oc:usesToken`, and `oc:interactsWithContract` are object properties.
    - Literal values such as `oc:amount`, `oc:timestamp`, and `oc:riskScore` are data properties.
    - The generated Turtle graph is stored in `backend/data/generated_graph.ttl`.
+   - Use **Export RDF Turtle** if the marker wants to inspect the generated `.ttl` output.
 
-7. Open the **Inferred risks** tab and explain the risk summary:
+8. Open the **Inferred facts** tab and explain the risk summary:
 
    - `0xAlice` is high risk because its `oc:riskExplanation` says it interacted with a `MixerWallet`.
    - `0xBob` is high risk because its `oc:riskExplanation` says it sent transactions to three or more risky wallets.
    - High-value transactions above 10000 are suspicious because their explanation says the amount threshold was exceeded.
    - `0xRiskyContract` is suspicious because its explanation says it received repeated high-value transactions.
    - Each inferred entity has a risk explanation, risk indicator, fraud pattern, and risk score to support explainability.
+   - Show the **Inferred RDF facts** table to prove that reasoning results are stored as triples, not only as UI text.
+   - Use **Export risk summary CSV** if needed for report evidence.
 
-8. Open the **SPARQL** tab and run the predefined queries:
+9. Open the **Risk evidence** tab.
+
+   - Select `Wallet: 0xAlice` or `Wallet: 0xBob`.
+   - Show the matched rule explanation.
+   - Show source RDF triples from the original CSV-derived facts.
+   - Show inferred RDF triples such as `rdf:type oc:HighRiskWallet`, `oc:riskScore`, and `oc:riskExplanation`.
+   - Show the SPARQL evidence query and explain that the classification can be verified semantically.
+
+10. Open the **SPARQL** tab and run the predefined queries:
 
    - High-risk wallets with explanations
    - Suspicious transactions with explanations
@@ -61,22 +78,24 @@ Manual setup:
    - Ontology classes used in the graph
    - Mixer exposure relationships
    - Point out the short explanation beside each preset query before running it.
+   - Use **Export SPARQL result CSV** to show that query results can be reused.
 
-9. Open the **Knowledge graph** tab.
+11. Open the **Knowledge graph** tab.
 
    - Point out Wallet, Transaction, Token, SmartContract, RiskIndicator, and FraudPattern nodes.
    - Explain that labelled edges are RDF object properties.
    - Mention that inferred risk nodes are part of the same RDF graph as the original CSV data.
+   - Use the graph filter to switch between all relationships, wallet transfers, smart contract interactions, and inferred risk relationships.
 
-10. Open the **Semantic Web use** tab.
+12. Open the **Semantic Web use** tab.
 
     - Use it as the final rubric summary.
     - Category 2 is demonstrated through RDF triples, RDFS modelling, and SPARQL queries.
     - Category 3 is demonstrated through OWL ontology classes/properties and rule-based inference.
 
-11. For Q&A, open `backend/data/generated_graph.ttl` to show that the demo produces real Turtle RDF output.
+13. For Q&A, open `backend/data/generated_graph.ttl` or use **Export RDF Turtle** to show that the demo produces real Turtle RDF output.
 
-12. Mention that the automated tests validate the RDF conversion, ontology loading, reasoning rules, SPARQL queries, and API output formats.
+14. Mention that the automated tests validate CSV validation, RDF conversion, ontology loading, reasoning rules, SPARQL queries, evidence output, graph filtering, and API output formats.
 
 ## Five-Minute Presentation Flow
 
@@ -84,20 +103,23 @@ Manual setup:
    - State the problem: flat blockchain transaction tables do not explain wallet, contract, and risk relationships well.
    - Show **Raw CSV** and identify sender, receiver, amount, contract, token, and transaction type.
 
-2. **Minute 2: RDF graph construction**
+2. **Minute 2: Validation and RDF graph construction**
+   - Show **Validation** and explain data-quality checks before RDF conversion.
    - Click **Build RDF knowledge graph**.
    - Show **RDF triples**.
    - Explain that wallets, transactions, tokens, and contracts are RDF resources connected by object properties.
 
 3. **Minute 3: OWL/RDFS and inference**
-   - Show **Inferred risks**.
+   - Show **Inferred facts**.
    - Explain that `HighRiskWallet`, `SuspiciousTransaction`, and `SuspiciousContract` are ontology classes.
    - Read the `oc:riskExplanation` values for `0xAlice`, `0xBob`, high-value transactions, and `0xRiskyContract`.
+   - Show one inferred RDF fact row.
 
-4. **Minute 4: SPARQL and graph visualisation**
+4. **Minute 4: Evidence, SPARQL and graph visualisation**
+   - Open **Risk evidence** for `0xAlice` and show source triples plus inferred triples.
    - Run **High-risk wallets with explanations**.
    - Run **Ontology classes used in graph** or **All inferred facts**.
-   - Show **Knowledge graph** and point out labelled RDF relationships.
+   - Show **Knowledge graph** and use one graph filter.
 
 5. **Minute 5: Rubric alignment**
    - Open **Semantic Web use**.
@@ -131,21 +153,29 @@ A: No. The project uses transparent rule-based inference. This is suitable for t
 
 A: Inferred facts are written back into the RDF graph. For example, a wallet can receive `rdf:type oc:HighRiskWallet` and `oc:riskExplanation "Wallet classified as HighRiskWallet because it interacted with a MixerWallet."`
 
-**Q7: Can custom queries be used?**
+**Q7: How do you prove a risk label is explainable?**
+
+A: The Risk evidence tab shows the source RDF triples, the inferred RDF triples, the matched rule explanation, and a SPARQL evidence query for the selected entity.
+
+**Q8: How is uploaded data checked before RDF generation?**
+
+A: The Validation tab checks required columns, missing required values, numeric amounts, timestamp warnings, and transaction type warnings before building the graph.
+
+**Q9: Can custom queries be used?**
 
 A: Yes. The SPARQL tab includes predefined queries for the demo, but the query text area remains editable for custom SPARQL.
 
-**Q8: What are the limitations?**
+**Q10: What are the limitations?**
 
 A: The MVP uses sample CSV data, simple transparent rules, and a compact ontology. It does not use live blockchain crawling or production-grade fraud scoring.
 
-**Q9: How was the system evaluated?**
+**Q11: How was the system evaluated?**
 
-A: Automated tests validate CSV-to-RDF conversion, ontology loading, each reasoning rule, SPARQL query output, graph-data format, and risk-summary format.
+A: Automated tests validate semantic CSV validation, CSV-to-RDF conversion, ontology loading, each reasoning rule, SPARQL query output, graph-data format, risk-summary format, inferred facts, and risk evidence output.
 
-**Q10: What future improvements are possible?**
+**Q12: What future improvements are possible?**
 
-A: Future work could add SHACL validation, named graphs, more fraud patterns, larger graph filtering, export functions, and eventually real blockchain datasets.
+A: Future work could add formal SHACL validation, named graphs, more fraud patterns, pagination for larger graphs, and eventually real blockchain datasets.
 
 ## If the Backend Is Not Running
 

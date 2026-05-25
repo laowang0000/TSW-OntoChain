@@ -15,7 +15,8 @@ def test_graph_data_endpoint_format(monkeypatch):
 
     payload = main.get_graph_data()
 
-    assert set(payload) == {"nodes", "edges"}
+    assert set(payload) == {"filter", "nodes", "edges"}
+    assert payload["filter"] == "all"
     assert payload["nodes"]
     assert payload["edges"]
     first_node = payload["nodes"][0]
@@ -46,3 +47,37 @@ def test_risk_summary_endpoint_format(monkeypatch):
     assert payload["suspicious_transaction_count"] >= 3
     wallet_row = payload["high_risk_wallets"][0]
     assert {"id", "label", "riskScore", "indicators", "patterns", "explanations"}.issubset(wallet_row)
+
+
+def test_graph_data_filter_limits_wallet_transfer_edges(monkeypatch):
+    monkeypatch.setattr(main, "load_generated_graph", _reasoned_sample_graph)
+
+    payload = main.get_graph_data(filter_mode="wallet_transfers")
+
+    assert payload["filter"] == "wallet_transfers"
+    assert payload["edges"]
+    assert {edge["label"] for edge in payload["edges"]}.issubset({"sentTo", "receivedFrom"})
+
+
+def test_inferred_facts_endpoint_format(monkeypatch):
+    monkeypatch.setattr(main, "load_generated_graph", _reasoned_sample_graph)
+
+    payload = main.get_inferred_facts()
+
+    assert payload["inferred_fact_count"] > 0
+    first_fact = payload["facts"][0]
+    assert {"entity", "entityLabel", "predicate", "object", "triple"}.issubset(first_fact)
+    assert any(fact["predicate"] == "rdf:type" for fact in payload["facts"])
+
+
+def test_risk_evidence_endpoint_includes_source_and_inferred_triples(monkeypatch):
+    monkeypatch.setattr(main, "load_generated_graph", _reasoned_sample_graph)
+
+    payload = main.get_risk_evidence("0xAlice")
+
+    assert payload["found"] is True
+    assert payload["label"] == "0xAlice"
+    assert payload["matchedRules"]
+    assert payload["sourceTriples"]
+    assert payload["inferredTriples"]
+    assert "SELECT ?predicate ?object" in payload["sparqlEvidenceQuery"]
